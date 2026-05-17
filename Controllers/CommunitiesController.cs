@@ -1,0 +1,148 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WebApiSocialMedia.Data;
+using WebApiSocialMedia.DTOs.Communities;
+using WebApiSocialMedia.Models;
+
+namespace WebApiSocialMedia.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class CommunitiesController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public CommunitiesController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<CommunityResponseDto>>> GetAll()
+    {
+        var communities = await _context.Communities
+            .Select(c => new CommunityResponseDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                OwnerId = c.OwnerId,
+                CreatedAt = c.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(communities);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<CommunityResponseDto>> GetById(int id)
+    {
+        var community = await _context.Communities
+            .Where(c => c.Id == id)
+            .Select(c => new CommunityResponseDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                OwnerId = c.OwnerId,
+                CreatedAt = c.CreatedAt
+            })
+            .FirstOrDefaultAsync();
+
+        if (community == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(community);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<CommunityResponseDto>> Create(CreateCommunityDto dto)
+    {
+        var exists = await _context.Communities
+            .AnyAsync(c => c.Name == dto.Name);
+
+        if (exists)
+        {
+            return BadRequest("Community already exists.");
+        }
+
+        var ownerExists = await _context.Users
+            .AnyAsync(u => u.Id == dto.OwnerId);
+
+        if (!ownerExists)
+        {
+            return BadRequest("Owner does not exist.");
+        }
+
+        var community = new Community
+        {
+            Name = dto.Name,
+            Description = dto.Description,
+            OwnerId = dto.OwnerId
+        };
+
+        _context.Communities.Add(community);
+
+        await _context.SaveChangesAsync();
+
+        var response = new CommunityResponseDto
+        {
+            Id = community.Id,
+            Name = community.Name,
+            Description = community.Description,
+            OwnerId = community.OwnerId,
+            CreatedAt = community.CreatedAt
+        };
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = community.Id },
+            response
+        );
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, UpdateCommunityDto dto)
+    {
+        var community = await _context.Communities.FindAsync(id);
+
+        if (community == null)
+        {
+            return NotFound();
+        }
+
+        var exists = await _context.Communities
+            .AnyAsync(c => c.Name == dto.Name);
+
+        if (exists)
+        {
+            return BadRequest("Community already exists.");
+        }
+
+        community.Name = dto.Name;
+        community.Description = dto.Description;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var community = await _context.Communities.FindAsync(id);
+
+        if (community == null)
+        {
+            return NotFound();
+        }
+
+        _context.Communities.Remove(community);
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+}

@@ -10,7 +10,4 @@ public class CreateCommunityDto
 
     [StringLength(500)]
     public string? Description { get; set; }
-
-    [Required]
-    public int OwnerId { get; set; }
 }

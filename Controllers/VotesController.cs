@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiSocialMedia.Data;
@@ -17,10 +19,9 @@ public class VotesController : ControllerBase
         _context = context;
     }
 
+    [Authorize]
     [HttpPost]
-    public async Task<ActionResult<VoteResponseDto>> Vote(
-    int postId,
-    VotePostDto dto)
+    public async Task<ActionResult<VoteResponseDto>> Vote(int postId, VotePostDto dto)
     {
         var postExists = await _context.Posts
             .AnyAsync(p => p.Id == postId);
@@ -30,8 +31,11 @@ public class VotesController : ControllerBase
             return NotFound("Post not found.");
         }
 
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         var userExists = await _context.Users
-            .AnyAsync(u => u.Id == dto.UserId);
+            .AnyAsync(u => u.Id == userId);
 
         if (!userExists)
         {
@@ -41,7 +45,7 @@ public class VotesController : ControllerBase
         var existingVote = await _context.PostVotes
             .FirstOrDefaultAsync(v =>
                 v.PostId == postId &&
-                v.UserId == dto.UserId);
+                v.UserId == userId);
 
         if (dto.VoteType == 0)
         {
@@ -59,7 +63,7 @@ public class VotesController : ControllerBase
             return Ok(new VoteResponseDto
             {
                 PostId = postId,
-                UserId = dto.UserId,
+                UserId = userId,
                 VoteType = 0,
                 TotalVotes = totalAfterRemoval
             });
@@ -70,7 +74,7 @@ public class VotesController : ControllerBase
             var vote = new PostVote
             {
                 PostId = postId,
-                UserId = dto.UserId,
+                UserId = userId,
                 VoteType = dto.VoteType
             };
 
@@ -90,7 +94,7 @@ public class VotesController : ControllerBase
         return Ok(new VoteResponseDto
         {
             PostId = postId,
-            UserId = dto.UserId,
+            UserId = userId,
             VoteType = dto.VoteType,
             TotalVotes = totalVotes
         });

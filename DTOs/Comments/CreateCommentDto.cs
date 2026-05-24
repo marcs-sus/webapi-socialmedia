@@ -9,9 +9,6 @@ public class CreateCommentDto
     public string Content { get; set; } = string.Empty;
 
     [Required]
-    public int AuthorId { get; set; }
-
-    [Required]
     public int PostId { get; set; }
 
     // Optional reply target

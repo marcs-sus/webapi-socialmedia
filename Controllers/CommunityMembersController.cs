@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiSocialMedia.Data;
@@ -17,12 +19,16 @@ public class CommunityMembersController : ControllerBase
         _context = context;
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<CommunityMemberResponseDto>> Join(
     JoinCommunityDto dto)
     {
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         var userExists = await _context.Users
-            .AnyAsync(u => u.Id == dto.UserId);
+            .AnyAsync(u => u.Id == userId);
 
         if (!userExists)
         {
@@ -39,7 +45,7 @@ public class CommunityMembersController : ControllerBase
 
         var alreadyMember = await _context.CommunityMembers
             .AnyAsync(cm =>
-                cm.UserId == dto.UserId &&
+                cm.UserId == userId &&
                 cm.CommunityId == dto.CommunityId);
 
         if (alreadyMember)
@@ -49,7 +55,7 @@ public class CommunityMembersController : ControllerBase
 
         var membership = new CommunityMember
         {
-            UserId = dto.UserId,
+            UserId = userId,
             CommunityId = dto.CommunityId
         };
 
@@ -61,7 +67,7 @@ public class CommunityMembersController : ControllerBase
             .Include(cm => cm.User)
             .Include(cm => cm.Community)
             .Where(cm =>
-                cm.UserId == dto.UserId &&
+                cm.UserId == userId &&
                 cm.CommunityId == dto.CommunityId)
             .Select(cm => new CommunityMemberResponseDto
             {
@@ -76,11 +82,14 @@ public class CommunityMembersController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize]
     [HttpDelete]
     public async Task<IActionResult> Leave(
-        [FromQuery] int userId,
         [FromQuery] int communityId)
     {
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         var membership = await _context.CommunityMembers
             .FirstOrDefaultAsync(cm =>
                 cm.UserId == userId &&

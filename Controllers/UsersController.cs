@@ -1,4 +1,5 @@
-using BCrypt.Net;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiSocialMedia.Data;
@@ -101,10 +102,16 @@ public class UsersController : ControllerBase
         );
     }
 
+    [Authorize]
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, UpdateUserDto dto)
+    public async Task<IActionResult> Update(UpdateUserDto dto)
     {
-        var user = await _context.Users.FindAsync(id);
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u =>
+                u.Id == userId);
 
         if (user == null)
         {
@@ -119,10 +126,16 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
+    [Authorize]
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete()
     {
-        var user = await _context.Users.FindAsync(id);
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u =>
+                u.Id == userId);
 
         if (user == null)
         {

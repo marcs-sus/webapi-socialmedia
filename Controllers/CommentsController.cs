@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiSocialMedia.Data;
@@ -47,11 +49,15 @@ public class CommentsController : ControllerBase
         return Ok(comments);
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<CommentResponseDto>> Create(CreateCommentDto dto)
     {
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         var authorExists = await _context.Users
-            .AnyAsync(u => u.Id == dto.AuthorId);
+            .AnyAsync(u => u.Id == userId);
 
         if (!authorExists)
         {
@@ -80,7 +86,7 @@ public class CommentsController : ControllerBase
         var comment = new Comment
         {
             Content = dto.Content,
-            AuthorId = dto.AuthorId,
+            AuthorId = userId,
             PostId = dto.PostId,
             ParentCommentId = dto.ParentCommentId
         };
@@ -107,10 +113,17 @@ public class CommentsController : ControllerBase
         return Ok(createdComment);
     }
 
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var comment = await _context.Comments.FindAsync(id);
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var comment = await _context.Comments
+            .FirstOrDefaultAsync(c =>
+                c.Id == id &&
+                c.AuthorId == userId);
 
         if (comment == null)
         {

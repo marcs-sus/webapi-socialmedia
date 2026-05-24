@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiSocialMedia.Data;
@@ -109,11 +111,15 @@ public class PostsController : ControllerBase
         return Ok(posts);
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<PostResponseDto>> Create(CreatePostDto dto)
     {
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         var authorExists = await _context.Users
-            .AnyAsync(u => u.Id == dto.AuthorId);
+            .AnyAsync(u => u.Id == userId);
 
         if (!authorExists)
         {
@@ -132,7 +138,7 @@ public class PostsController : ControllerBase
         {
             Title = dto.Title,
             Content = dto.Content,
-            AuthorId = dto.AuthorId,
+            AuthorId = userId,
             CommunityId = dto.CommunityId
         };
 
@@ -166,10 +172,17 @@ public class PostsController : ControllerBase
         );
     }
 
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdatePostDto dto)
     {
-        var post = await _context.Posts.FindAsync(id);
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var post = await _context.Posts
+            .FirstOrDefaultAsync(p =>
+                p.Id == id &&
+                p.AuthorId == userId);
 
         if (post == null)
         {
@@ -185,10 +198,17 @@ public class PostsController : ControllerBase
         return NoContent();
     }
 
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var post = await _context.Posts.FindAsync(id);
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var post = await _context.Posts
+            .FirstOrDefaultAsync(p =>
+                p.Id == id &&
+                p.AuthorId == userId);
 
         if (post == null)
         {

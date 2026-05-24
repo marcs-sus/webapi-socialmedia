@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiSocialMedia.Data;
@@ -57,6 +59,7 @@ public class CommunitiesController : ControllerBase
         return Ok(community);
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<CommunityResponseDto>> Create(CreateCommunityDto dto)
     {
@@ -68,8 +71,11 @@ public class CommunitiesController : ControllerBase
             return BadRequest("Community already exists.");
         }
 
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         var ownerExists = await _context.Users
-            .AnyAsync(u => u.Id == dto.OwnerId);
+            .AnyAsync(u => u.Id == userId);
 
         if (!ownerExists)
         {
@@ -80,7 +86,7 @@ public class CommunitiesController : ControllerBase
         {
             Name = dto.Name,
             Description = dto.Description,
-            OwnerId = dto.OwnerId
+            OwnerId = userId
         };
 
         _context.Communities.Add(community);
@@ -103,10 +109,17 @@ public class CommunitiesController : ControllerBase
         );
     }
 
+    [Authorize]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdateCommunityDto dto)
     {
-        var community = await _context.Communities.FindAsync(id);
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var community = await _context.Communities
+            .FirstOrDefaultAsync(c =>
+                c.Id == id &&
+                c.OwnerId == userId);
 
         if (community == null)
         {
@@ -129,10 +142,17 @@ public class CommunitiesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var community = await _context.Communities.FindAsync(id);
+        var userId = int.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var community = await _context.Communities
+            .FirstOrDefaultAsync(c =>
+                c.Id == id
+                && c.OwnerId == userId);
 
         if (community == null)
         {

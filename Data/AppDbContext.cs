@@ -60,7 +60,7 @@ public class AppDbContext : DbContext
             .HasOne(c => c.Owner)
             .WithMany(u => u.OwnedCommunities)
             .HasForeignKey(c => c.OwnerId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void ConfigureCommunityMembers(ModelBuilder modelBuilder)

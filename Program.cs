@@ -18,6 +18,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactFrontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services
     .AddAuthentication(options =>
     {
@@ -88,15 +98,14 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseHttpsRedirection();
+app.UseCors("ReactFrontend");
 if (app.Environment.IsDevelopment())
 {
-    app.UseAuthentication();
-    app.UseAuthorization();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

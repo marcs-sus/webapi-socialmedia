@@ -52,33 +52,20 @@ public class VotesController : ControllerBase
             if (existingVote != null)
             {
                 _context.PostVotes.Remove(existingVote);
-
-                await _context.SaveChangesAsync();
             }
-
-            var totalAfterRemoval = await _context.PostVotes
-                .Where(v => v.PostId == postId)
-                .SumAsync(v => (int?)v.VoteType) ?? 0;
-
-            return Ok(new VoteResponseDto
-            {
-                PostId = postId,
-                UserId = userId,
-                VoteType = 0,
-                TotalVotes = totalAfterRemoval
-            });
         }
-
-        if (existingVote == null)
+        else if (existingVote == null)
         {
-            var vote = new PostVote
+            _context.PostVotes.Add(new PostVote
             {
                 PostId = postId,
                 UserId = userId,
                 VoteType = dto.VoteType
-            };
-
-            _context.PostVotes.Add(vote);
+            });
+        }
+        else if (existingVote.VoteType == dto.VoteType)
+        {
+            _context.PostVotes.Remove(existingVote);
         }
         else
         {
@@ -91,11 +78,16 @@ public class VotesController : ControllerBase
             .Where(v => v.PostId == postId)
             .SumAsync(v => (int?)v.VoteType) ?? 0;
 
+        var finalVote = await _context.PostVotes
+            .FirstOrDefaultAsync(v =>
+                v.PostId == postId &&
+                v.UserId == userId);
+
         return Ok(new VoteResponseDto
         {
             PostId = postId,
             UserId = userId,
-            VoteType = dto.VoteType,
+            VoteType = finalVote?.VoteType ?? 0,
             TotalVotes = totalVotes
         });
     }

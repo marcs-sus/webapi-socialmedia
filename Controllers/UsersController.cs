@@ -103,7 +103,7 @@ public class UsersController : ControllerBase
     }
 
     [Authorize]
-    [HttpPut("{id}")]
+    [HttpPut]
     public async Task<IActionResult> Update(UpdateUserDto dto)
     {
         var userId = int.Parse(
@@ -127,7 +127,7 @@ public class UsersController : ControllerBase
     }
 
     [Authorize]
-    [HttpDelete("{id}")]
+    [HttpDelete]
     public async Task<IActionResult> Delete()
     {
         var userId = int.Parse(
